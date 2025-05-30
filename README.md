@@ -22,10 +22,6 @@ A way to ssh into Kaggle!
 >
 > - TCP endpoints are only available on a free plan after [adding a valid payment method](https://dashboard.ngrok.com/settings#id-verification) to your account.
 > - **Data Transfer Limits**: Free account are limited to 1GB data transfer.
->
-> Otherwise checkout [zrok branch](https://github.com/buidai123/Kaggle_VSCode_Remote_SSH/tree/feat/zrok-integration) (offers same features with less limits and does not require CC)
->
-> ![image](https://github.com/user-attachments/assets/96b2c14a-dc22-46db-a8f0-7229380a6173)
 
 ### Step 1: Generate SSH Keys
 
@@ -59,7 +55,7 @@ Create a Kaggle notebook, choose your desired GPU, adjust persistence if needed,
 
 ```bash
 !printenv > /kaggle/working/kaggle_env_vars.txt
-!git clone https://github.com/buidai123/Kaggle_VSCode_Remote_SSH.git /kaggle/working/Kaggle_VSCode_Remote_SSH
+!git clone -b ngrok https://github.com/buidai123/Kaggle_VSCode_Remote_SSH.git /kaggle/working/Kaggle_VSCode_Remote_SSH
 %cd /kaggle/working/Kaggle_VSCode_Remote_SSH
 !pip install -r requirements.txt
 !chmod +x setup_kaggle_ssh.py setup_ssh.sh
