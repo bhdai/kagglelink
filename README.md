@@ -55,7 +55,7 @@ Create a Kaggle notebook, choose your desired GPU, adjust persistence if needed,
 
 ```bash
 !printenv > /kaggle/working/kaggle_env_vars.txt
-!git clone -b ngrok https://github.com/buidai123/Kaggle_VSCode_Remote_SSH.git /kaggle/working/Kaggle_VSCode_Remote_SSH
+!git clone -b ngrok https://github.com/bhdai/kagglelink.git /kaggle/working/Kaggle_VSCode_Remote_SSH
 %cd /kaggle/working/Kaggle_VSCode_Remote_SSH
 !pip install -r requirements.txt
 !chmod +x setup_kaggle_ssh.py setup_ssh.sh
