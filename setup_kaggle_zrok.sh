@@ -82,6 +82,10 @@ setup_environment_variables() {
         echo ""
         echo "# Added by setup_kaggle_zrok.sh: Kaggle instance environment variables"
         printenv | while IFS='=' read -r key value; do
+            # Skip PWD and OLDPWD to avoid setting working directory
+            if [[ "$key" == "PWD" || "$key" == "OLDPWD" ]]; then
+                continue
+            fi
             # Properly escape single quotes for bash export
             escaped_value_final=$(printf "%s" "$value" | sed "s/'/'\\''/g")
             echo "export ${key}='${escaped_value_final}'"
