@@ -118,7 +118,7 @@ rsync -e "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ~/.
 
 > [!NOTE]
 >
-> If you're using the Starter plan, they only offer 2 environment connection on this plan one for you local machine, one for kaggle instance. Each time you ssh into kaggle make sure to visit [https://api-v1.zrok.io/](https://api-v1.zrok.io/) to release the previous kaggle instance or you can use `zrok disable` (run this while connected via SSH to kaggle) before you ending the ssh connection 
+> If you're using the Starter plan, they only offer 2 environment connection on this plan one for you local machine, one for kaggle instance. While the script will automatically release the Kaggle instance when you turn off Kaggle, but it's best to check [https://api-v1.zrok.io/](https://api-v1.zrok.io/) to make sure your local machine is connected and there are no other active connections.
 
 ## License
 

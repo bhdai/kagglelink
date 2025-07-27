@@ -9,6 +9,15 @@ fi
 
 ZROK_TOKEN=$1
 
+cleanup() {
+    echo "Disabling zrok environment..."
+    zrok disable
+    echo "Cleanup complete."
+}
+
+# trap the exit signal to run the cleanup function
+trap cleanup EXIT
+
 echo "Starting zrok service..."
 if [ -z "$ZROK_TOKEN" ]; then
     echo "Error: ZROK_TOKEN not provided."
@@ -24,3 +33,4 @@ zrok enable "$ZROK_TOKEN" || {
 echo "Starting zrok share in headless mode..."
 echo "Starting zrok share now..."
 zrok share private --headless --backend-mode tcpTunnel localhost:22
+
