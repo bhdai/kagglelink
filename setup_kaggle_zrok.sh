@@ -31,13 +31,13 @@ copy_vscode_dir() {
         mkdir -p "/kaggle/.vscode"
         cp -r "$vscode_dir_in_repo/"* "/kaggle/.vscode/"
         echo ".vscode folder copied to /kaggle directory."
-        
+
         mkdir -p "/kaggle/working"
         [ -d "/kaggle/working/.vscode" ] && rm -rf "/kaggle/working/.vscode"
         mkdir -p "/kaggle/working/.vscode"
         cp -r "$vscode_dir_in_repo/"* "/kaggle/working/.vscode/"
         echo ".vscode folder copied to /kaggle/working directory."
-        
+
         echo "Contents of /kaggle/.vscode:"
         ls -l "/kaggle/.vscode"
         echo "Contents of /kaggle/working/.vscode:"
@@ -91,7 +91,7 @@ setup_environment_variables() {
             echo "export ${key}='${escaped_value_final}'"
         done
         echo "# End of Kaggle instance environment variables"
-        
+
         echo "# Dynamic VS Code server path resolution"
         cat <<'EOT'
 # Dynamic VS Code server path resolution
@@ -113,7 +113,7 @@ EOT
 install_packages() {
     echo "Installing openssh-server..."
     sudo apt-get update
-    sudo apt-get install -y openssh-server
+    sudo apt-get install -y openssh-server nvtop
 }
 
 install_zrok() {
