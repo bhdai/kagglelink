@@ -114,6 +114,8 @@ install_packages() {
     echo "Installing openssh-server..."
     sudo apt-get update
     sudo apt-get install -y openssh-server nvtop
+    
+    curl -LsSf https://astral.sh/uv/install.sh | sh
 }
 
 install_zrok() {
