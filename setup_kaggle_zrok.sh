@@ -32,7 +32,7 @@ copy_vscode_dir() {
         cp -r "$vscode_dir_in_repo/"* "/kaggle/.vscode/"
         echo ".vscode folder copied to /kaggle directory."
 
-        mkdir -p "/kaggle/working"
+        mkdir -p "/kaggle/tmp"
         [ -d "/kaggle/working/.vscode" ] && rm -rf "/kaggle/working/.vscode"
         mkdir -p "/kaggle/working/.vscode"
         cp -r "$vscode_dir_in_repo/"* "/kaggle/working/.vscode/"
