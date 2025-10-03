@@ -92,6 +92,13 @@ setup_environment_variables() {
         done
         echo "# End of Kaggle instance environment variables"
 
+        echo "# Directory navigation aliases"
+        echo "alias ..='cd ..'" >>/root/.bashrc
+        echo "alias ...='cd ../..'" >>/root/.bashrc
+        echo "alias .3='cd ../../..'" >>/root/.bashrc
+        echo "alias .4='cd ../../../..'" >>/root/.bashrc
+        echo "alias .5='cd ../../../../..'" >>/root/.bashrc
+
         echo "# Dynamic VS Code server path resolution"
         cat <<'EOT'
 # Dynamic VS Code server path resolution
