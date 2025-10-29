@@ -90,6 +90,7 @@ setup_environment_variables() {
             escaped_value_final=$(printf "%s" "$value" | sed "s/'/'\\''/g")
             echo "export ${key}='${escaped_value_final}'"
         done
+        echo "export MPLBACKEND=Agg"
         echo "# End of Kaggle instance environment variables"
 
         echo "# Directory navigation aliases"
@@ -121,7 +122,7 @@ install_packages() {
     echo "Installing openssh-server..."
     sudo apt-get update
     sudo apt-get install -y openssh-server nvtop
-    
+
     curl -LsSf https://astral.sh/uv/install.sh | sh
 }
 
