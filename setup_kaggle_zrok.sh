@@ -78,6 +78,17 @@ EOF
     echo "Configuring debconf for non-interactive mode..."
     echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
     echo "debconf configured to use Noninteractive frontend."
+
+    # Disable pam_systemd for container compatibility
+    echo "Disabling pam_systemd..."
+    sed -i 's/^session.*pam_systemd.so/#&/' /etc/pam.d/common-session
+
+    # Disable man-db postinst to prevent crashes
+    echo "Disabling man-db postinst script..."
+    dpkg-divert --quiet --local --rename --add /var/lib/dpkg/info/man-db.postinst
+    ln -sf /bin/true /var/lib/dpkg/info/man-db.postinst
+
+    echo "Container compatibility fixes applied."
 }
 
 setup_environment_variables() {
