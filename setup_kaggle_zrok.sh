@@ -83,7 +83,11 @@ setup_environment_variables() {
         echo "# Added by setup_kaggle_zrok.sh: Kaggle instance environment variables"
         printenv | while IFS='=' read -r key value; do
             # Skip PWD and OLDPWD to avoid setting working directory
-            if [[ "$key" == "PWD" || "$key" == "OLDPWD" ]]; then
+            # Skip interactive/session-specific variables that break SSH sessions
+            if [[ "$key" == "PWD" || "$key" == "OLDPWD" || \
+                  "$key" == "DEBIAN_FRONTEND" || "$key" == "SHELL" || \
+                  "$key" == "_" || "$key" == "SHLVL" || "$key" == "HOSTNAME" || \
+                  "$key" == "JPY_PARENT_PID" || "$key" =~ ^COLAB_ ]]; then
                 continue
             fi
             # Properly escape single quotes for bash export
