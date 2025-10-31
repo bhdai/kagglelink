@@ -74,6 +74,10 @@ ClientAliveCountMax 2
 EOF
     echo "" >>/etc/ssh/sshd_config
     echo "sshd_config updated. Note: Appended settings. Ensure no conflicting duplicates exist if run multiple times."
+
+    echo "Configuring debconf for non-interactive mode..."
+    echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+    echo "debconf configured to use Noninteractive frontend."
 }
 
 setup_environment_variables() {
