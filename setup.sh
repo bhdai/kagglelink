@@ -25,21 +25,21 @@ usage() {
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -k|--keys-url)
-            AUTH_KEYS_URL="$2"
-            shift 2
-            ;;
-        -t|--token)
-            ZROK_TOKEN="$2"
-            shift 2
-            ;;
-        -h|--help)
-            usage
-            ;;
-        *)
-            echo "Unknown option: $1"
-            usage
-            ;;
+    -k | --keys-url)
+        AUTH_KEYS_URL="$2"
+        shift 2
+        ;;
+    -t | --token)
+        ZROK_TOKEN="$2"
+        shift 2
+        ;;
+    -h | --help)
+        usage
+        ;;
+    *)
+        echo "Unknown option: $1"
+        usage
+        ;;
     esac
 done
 
@@ -60,7 +60,7 @@ if [ -d "$INSTALL_DIR" ]; then
     rm -rf "$INSTALL_DIR"
 fi
 
-git clone "$REPO_URL" "$INSTALL_DIR"
+git clone -b fix/skip-interactive-env-vars "$REPO_URL" "$INSTALL_DIR"
 
 echo "⏳ Changing to repository directory..."
 cd "$INSTALL_DIR"
