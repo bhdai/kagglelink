@@ -140,7 +140,7 @@ EOT
 install_packages() {
     echo "Installing openssh-server..."
     sudo apt-get update
-    sudo apt-get install -y openssh-server nvtop
+    sudo apt-get install -y openssh-server nvtop screen
 
     curl -LsSf https://astral.sh/uv/install.sh | sh
 }
@@ -194,6 +194,17 @@ start_ssh_service() {
     echo "SSH service should be running."
 }
 
+copy_screenrc() {
+    local src="/tmp/kagglelink/.screenrc"
+    local dest="$HOME/.screenrc"
+    if [ -f "$src" ]; then
+        cp "$src" "$dest"
+        echo ".screenrc installed to $dest"
+    else
+        echo "Warning: $src not found; skipping .screenrc install."
+    fi
+}
+
 (
     setup_environment_variables
     install_packages
@@ -201,8 +212,9 @@ start_ssh_service() {
     setup_ssh_directory # run sequentially
     configure_sshd      # run sequentially
     copy_vscode_dir &
+    copy_screenrc &
     setup_install_extensions_command
-    wait # for create_symlink
+    wait # for copy_vscode_dir and copy_screenrc
     start_ssh_service
 )
 

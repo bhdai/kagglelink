@@ -60,7 +60,7 @@ if [ -d "$INSTALL_DIR" ]; then
     rm -rf "$INSTALL_DIR"
 fi
 
-git clone -b fix/skip-interactive-env-vars "$REPO_URL" "$INSTALL_DIR"
+git clone "$REPO_URL" "$INSTALL_DIR"
 
 echo "⏳ Changing to repository directory..."
 cd "$INSTALL_DIR"
