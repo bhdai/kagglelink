@@ -1,0 +1,105 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint:
+    name: Shellcheck Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: '.'
+          severity: warning
+          check_together: 'yes'
+        env:
+          SHELLCHECK_OPTS: -e SC1091  # Ignore source not found (for testing)
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install bats-core
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+
+      - name: Install bats helpers
+        run: |
+          mkdir -p tests/test_helper
+          git clone --depth 1 https://github.com/bats-core/bats-support.git tests/test_helper/bats-support
+          git clone --depth 1 https://github.com/bats-core/bats-assert.git tests/test_helper/bats-assert
+
+      - name: Run unit tests
+        run: |
+          bats --formatter tap tests/unit/ | tee test-results-unit.tap
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: test-results-unit.tap
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install bats-core
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+
+      - name: Install bats helpers
+        run: |
+          mkdir -p tests/test_helper
+          git clone --depth 1 https://github.com/bats-core/bats-support.git tests/test_helper/bats-support
+          git clone --depth 1 https://github.com/bats-core/bats-assert.git tests/test_helper/bats-assert
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Run integration tests
+        run: |
+          bats --formatter tap tests/integration/ | tee test-results-integration.tap
+        continue-on-error: true  # Integration tests may skip if Docker not configured
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: test-results-integration.tap
+
+  # Canary test - runs on schedule to verify Kaggle compatibility
+  # Uncomment when ready to enable
+  # canary:
+  #   name: Kaggle Canary
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'schedule'
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #     - name: Run Kaggle canary
+  #       run: |
+  #         python tests/e2e/canary_notebook.py
+  #       env:
+  #         KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+  #         KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+  #         ZROK_TOKEN: ${{ secrets.ZROK_TOKEN }}
