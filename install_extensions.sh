@@ -10,7 +10,7 @@ extensions=(
 
 # Install each extension
 for extension in "${extensions[@]}"; do
-  code --install-extension $extension &
+  code --install-extension "$extension" &
 done
 
 # Wait for all background jobs (extension installations) to complete

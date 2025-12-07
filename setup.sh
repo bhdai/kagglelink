@@ -2,8 +2,31 @@
 
 set -e
 
+# Version and branch configuration
+KAGGLELINK_VERSION="1.1.0"
+KAGGLELINK_BRANCH="${BRANCH:-main}"
+
+# Security: Validate KAGGLELINK_BRANCH to prevent argument injection
+# Branch names must not start with '-' to prevent git argument injection
+if [[ "$KAGGLELINK_BRANCH" =~ ^- ]]; then
+    echo "❌ Error: Invalid branch name '$KAGGLELINK_BRANCH'"
+    echo "   Branch names cannot start with '-' (security: prevents argument injection)"
+    exit 1
+fi
+
+# Reliability: Check for git installation
+if ! command -v git &> /dev/null; then
+    echo "❌ Error: git is not installed"
+    echo "   Please install git and try again"
+    echo "   - Debian/Ubuntu: sudo apt-get install git"
+    echo "   - RHEL/CentOS: sudo yum install git"
+    echo "   - macOS: brew install git"
+    exit 1
+fi
+
 echo "===================================="
 echo "kagglelink setup tool"
+echo "Version: ${KAGGLELINK_VERSION} (branch: ${KAGGLELINK_BRANCH})"
 echo "For more information check out: https://github.com/bhdai/kagglelink"
 echo "===================================="
 
@@ -12,14 +35,19 @@ REPO_URL="https://github.com/bhdai/kagglelink.git"
 INSTALL_DIR="/tmp/kagglelink"
 
 # Function to display usage information
+# Takes optional exit code parameter (default: 1 for errors, 0 for help)
 usage() {
-    echo "Usage: curl -sS https://raw.githubusercontent.com/bhdai/kagglelink/refs/heads/main/setup.sh | bash -s -- -k <your_public_key_url> -t <your_zrok_token>"
+    local exit_code="${1:-1}"
+    echo "Usage: curl -sS https://raw.githubusercontent.com/bhdai/kagglelink/refs/heads/${KAGGLELINK_BRANCH}/setup.sh | bash -s -- -k <your_public_key_url> -t <your_zrok_token>"
     echo ""
     echo "Options:"
     echo "  -k, --keys-url URL    URL to your authorized_keys file"
     echo "  -t, --token TOKEN     Your zrok token"
     echo "  -h, --help            Display this help message"
-    exit 1
+    echo ""
+    echo "Environment Variables:"
+    echo "  BRANCH                Override default branch (current: ${KAGGLELINK_BRANCH})"
+    exit "$exit_code"
 }
 
 # Parse command line arguments
@@ -34,7 +62,7 @@ while [[ $# -gt 0 ]]; do
         shift 2
         ;;
     -h | --help)
-        usage
+        usage 0
         ;;
     *)
         echo "Unknown option: $1"
@@ -42,6 +70,15 @@ while [[ $# -gt 0 ]]; do
         ;;
     esac
 done
+
+# Apply environment variable fallback if CLI args not provided
+if [ -z "$AUTH_KEYS_URL" ] && [ -n "$KAGGLELINK_KEYS_URL" ]; then
+    AUTH_KEYS_URL="$KAGGLELINK_KEYS_URL"
+fi
+
+if [ -z "$ZROK_TOKEN" ] && [ -n "$KAGGLELINK_TOKEN" ]; then
+    ZROK_TOKEN="$KAGGLELINK_TOKEN"
+fi
 
 # Check for required parameters
 if [ -z "$AUTH_KEYS_URL" ]; then
@@ -54,13 +91,33 @@ if [ -z "$ZROK_TOKEN" ]; then
     usage
 fi
 
+# Validate that AUTH_KEYS_URL uses HTTPS (security requirement)
+if [[ ! "$AUTH_KEYS_URL" =~ ^https:// ]]; then
+    echo "❌ Error: Keys URL must use HTTPS (not HTTP)"
+    echo "   Insecure URL: $AUTH_KEYS_URL"
+    if [[ "$AUTH_KEYS_URL" =~ ^http:// ]]; then
+        echo "   Use: ${AUTH_KEYS_URL/http:/https:}"
+    else
+        echo "   URL must start with https://"
+    fi
+    exit 1
+fi
+
 echo "⏳ Cloning repository..."
 if [ -d "$INSTALL_DIR" ]; then
     echo "Repository directory already exists. Removing it..."
     rm -rf "$INSTALL_DIR"
 fi
 
-git clone "$REPO_URL" "$INSTALL_DIR"
+if ! git clone -b "$KAGGLELINK_BRANCH" "$REPO_URL" "$INSTALL_DIR"; then
+    echo "❌ Error: Failed to clone branch '$KAGGLELINK_BRANCH'"
+    echo "   Possible reasons:"
+    echo "   - Branch does not exist"
+    echo "   - Network connectivity issues"
+    echo "   - GitHub is unreachable"
+    exit 1
+fi
+echo "✅ Cloned repository (branch: ${KAGGLELINK_BRANCH})"
 
 echo "⏳ Changing to repository directory..."
 cd "$INSTALL_DIR"

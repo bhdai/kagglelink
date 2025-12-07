@@ -1,0 +1,10 @@
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    privileged: true  # Required for sshd testing
+    command: bats tests/

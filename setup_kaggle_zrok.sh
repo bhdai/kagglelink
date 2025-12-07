@@ -99,25 +99,28 @@ setup_environment_variables() {
         printenv | while IFS='=' read -r key value; do
             # Skip PWD and OLDPWD to avoid setting working directory
             # Skip interactive/session-specific variables that break SSH sessions
+            # Skip bash internal variables (BASH_*) which can't be exported properly
             if [[ "$key" == "PWD" || "$key" == "OLDPWD" || "$key" == "TERM" ||
                 "$key" == "DEBIAN_FRONTEND" || "$key" == "SHELL" ||
                 "$key" == "_" || "$key" == "SHLVL" || "$key" == "HOSTNAME" ||
-                "$key" == "JPY_PARENT_PID" || "$key" =~ ^COLAB_ ]]; then
+                "$key" == "JPY_PARENT_PID" || "$key" =~ ^COLAB_ || "$key" =~ ^BASH_ ]]; then
                 continue
             fi
             # Properly escape single quotes for bash export
-            escaped_value_final=$(printf "%s" "$value" | sed "s/'/'\\''/g")
+            escaped_value_final=$(printf "%s" "$value" | sed "s/'/'\\\''/g")
             echo "export ${key}='${escaped_value_final}'"
         done
         echo "export MPLBACKEND=Agg"
         echo "# End of Kaggle instance environment variables"
 
         echo "# Directory navigation aliases"
-        echo "alias ..='cd ..'" >>/root/.bashrc
-        echo "alias ...='cd ../..'" >>/root/.bashrc
-        echo "alias .3='cd ../../..'" >>/root/.bashrc
-        echo "alias .4='cd ../../../..'" >>/root/.bashrc
-        echo "alias .5='cd ../../../../..'" >>/root/.bashrc
+        {
+            echo "alias ..='cd ..'"
+            echo "alias ...='cd ../..'" 
+            echo "alias .3='cd ../../..'"
+            echo "alias .4='cd ../../../..'"
+            echo "alias .5='cd ../../../../..'"
+        } >>/root/.bashrc
 
         echo "# Dynamic VS Code server path resolution"
         cat <<'EOT'
@@ -134,6 +137,7 @@ EOT
     } >>/root/.bashrc
 
     echo "Sourcing /root/.bashrc for current script session (best effort)..."
+    # shellcheck disable=SC1091
     source /root/.bashrc || echo "Warning: Sourcing /root/.bashrc encountered an issue. SSH sessions should still inherit env vars."
 }
 

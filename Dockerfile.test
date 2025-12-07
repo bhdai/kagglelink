@@ -1,0 +1,21 @@
+FROM python:3.10-slim-bullseye
+
+# Install test dependencies matching Kaggle environment
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    git \
+    curl \
+    wget \
+    bats \
+    shellcheck \
+    sudo \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create necessary directories for sshd
+RUN mkdir -p /var/run/sshd /root/.ssh
+
+WORKDIR /workspace
+
+# Default command runs all tests
+CMD ["bats", "tests/"]
