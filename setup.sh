@@ -35,7 +35,9 @@ REPO_URL="https://github.com/bhdai/kagglelink.git"
 INSTALL_DIR="/tmp/kagglelink"
 
 # Function to display usage information
+# Takes optional exit code parameter (default: 1 for errors, 0 for help)
 usage() {
+    local exit_code="${1:-1}"
     echo "Usage: curl -sS https://raw.githubusercontent.com/bhdai/kagglelink/refs/heads/${KAGGLELINK_BRANCH}/setup.sh | bash -s -- -k <your_public_key_url> -t <your_zrok_token>"
     echo ""
     echo "Options:"
@@ -45,7 +47,7 @@ usage() {
     echo ""
     echo "Environment Variables:"
     echo "  BRANCH                Override default branch (current: ${KAGGLELINK_BRANCH})"
-    exit 0
+    exit "$exit_code"
 }
 
 # Parse command line arguments
@@ -60,7 +62,7 @@ while [[ $# -gt 0 ]]; do
         shift 2
         ;;
     -h | --help)
-        usage
+        usage 0
         ;;
     *)
         echo "Unknown option: $1"
@@ -68,6 +70,15 @@ while [[ $# -gt 0 ]]; do
         ;;
     esac
 done
+
+# Apply environment variable fallback if CLI args not provided
+if [ -z "$AUTH_KEYS_URL" ] && [ -n "$KAGGLELINK_KEYS_URL" ]; then
+    AUTH_KEYS_URL="$KAGGLELINK_KEYS_URL"
+fi
+
+if [ -z "$ZROK_TOKEN" ] && [ -n "$KAGGLELINK_TOKEN" ]; then
+    ZROK_TOKEN="$KAGGLELINK_TOKEN"
+fi
 
 # Check for required parameters
 if [ -z "$AUTH_KEYS_URL" ]; then
@@ -78,6 +89,18 @@ fi
 if [ -z "$ZROK_TOKEN" ]; then
     echo "Error: zrok token (-t or --token) is required"
     usage
+fi
+
+# Validate that AUTH_KEYS_URL uses HTTPS (security requirement)
+if [[ ! "$AUTH_KEYS_URL" =~ ^https:// ]]; then
+    echo "❌ Error: Keys URL must use HTTPS (not HTTP)"
+    echo "   Insecure URL: $AUTH_KEYS_URL"
+    if [[ "$AUTH_KEYS_URL" =~ ^http:// ]]; then
+        echo "   Use: ${AUTH_KEYS_URL/http:/https:}"
+    else
+        echo "   URL must start with https://"
+    fi
+    exit 1
 fi
 
 echo "⏳ Cloning repository..."
