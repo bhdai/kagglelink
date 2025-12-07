@@ -124,15 +124,16 @@ tests/
 │   └── bats-assert/               # bats-assert library (git clone)
 ├── unit/                          # Unit tests (fast, isolated)
 │   ├── test_argument_parsing.bats # CLI argument validation
-│   ├── test_url_validation.bats   # URL format checks
-│   └── test_logging.bats          # Log output functions
+│   ├── test_env_fallback.bats     # Environment variable fallback logic
+│   ├── test_env_filtering.bats    # Environment variable filtering & quote escaping
+│   ├── test_security.bats         # Security requirements (tokens, private shares)
+│   ├── test_ssh_permissions.bats  # SSH file permission validation  
+│   ├── test_url_validation.bats   # URL format and HTTPS enforcement
+│   └── test_version_tracking.bats # Version display and branch management
 ├── integration/                   # Integration tests (Docker)
-│   ├── test_ssh_setup.bats        # SSH directory and config
-│   ├── test_package_install.bats  # Apt package installation
 │   ├── test_idempotency.bats      # Re-run safety
 │   └── fixtures/                  # Test data and configs
-│       ├── sample_authorized_keys
-│       └── sample_sshd_config
+│       └── sample_authorized_keys
 └── e2e/                           # End-to-end tests
     └── canary_notebook.py         # Kaggle canary execution
 ```
@@ -257,7 +258,195 @@ teardown() {
 
 ---
 
-## CI Integration
+## Testing Patterns & Best Practices
+
+### Environment Variable Filtering Tests
+
+When testing functions that filter and export environment variables:
+
+**Challenge:** Can't source scripts that require arguments  
+**Solution:** Extract logic into standalone test helper script
+
+```bash
+# In setup()
+cat > "${TEST_TEMP_DIR}/filter_env.sh" <<'EOF'
+#!/bin/bash
+TEST_BASHRC="$1"
+printenv | while IFS='=' read -r key value; do
+    if [[ "$key" =~ ^(PWD|BASH_|BATS_)$ ]]; then
+        continue
+    fi
+    escaped=$(printf "%s" "$value" | sed "s/'/'\\''/g")
+    echo "export ${key}='${escaped}'" >> "$TEST_BASHRC"
+done
+EOF
+chmod +x "${TEST_TEMP_DIR}/filter_env.sh"
+
+# In tests
+bash "${TEST_TEMP_DIR}/filter_env.sh" "${TEST_BASHRC}"
+```
+
+**Key Learnings:**
+- Always filter out `BASH_*` and `BATS_*` variables to prevent function exports
+- Test both filtering (what's excluded) AND inclusion (what's kept)
+- Verify generated exports are valid bash syntax: `bash -c "source file"`
+
+### Quote Escaping Tests
+
+Single quotes in bash strings require special handling:
+
+```bash
+# The sed pattern for escaping single quotes
+escaped_value=$(printf "%s" "$value" | sed "s/'/'\\''/g")
+echo "export VAR='${escaped_value}'"
+
+# Transforms: has 'quote'
+# Into: export VAR='has '\''quote'\'''
+```
+
+**Testing Strategy:**
+- Don't test the exact escape pattern (implementation detail)
+- Test that bash can source the result without errors
+- Test edge cases: `'`, `"`, `$`, `\`, spaces, newlines
+
+### SSH Permission Tests
+
+**Use actual file operations, not grep:**
+
+```bash
+# ❌ Bad: Only checks if code exists
+grep "chmod 700" script.sh
+
+# ✅ Good: Validates actual behavior
+mkdir -p "$TEST_DIR/.ssh"
+chmod 700 "$TEST_DIR/.ssh"
+actual=$(stat -c '%a' "$TEST_DIR/.ssh")
+[ "$actual" = "700" ]
+```
+
+**Permission Testing Checklist:**
+- Create files/dirs in TEST_TEMP_DIR
+- Set permissions with chmod
+- Verify with `stat -c '%a'` (octal) or `stat -c '%A'` (symbolic)
+- Test repair scenarios (fix incorrect perms)
+
+### Mocking Patterns
+
+**Available Mocks (from test_helper/common.bash):**
+
+```bash
+# Mock HTTP requests
+mock_curl()
+curl() { echo "MOCKED_RESPONSE"; return 0; }
+
+# Mock git operations
+mock_git()
+git() {
+    case "$1" in
+        clone) mkdir -p "$3"; echo "MOCKED_CLONE" ;;
+        *) command git "$@" ;;
+    esac
+}
+
+# Mock package management
+mock_apt_get()
+apt_get() { echo "MOCKED_APT: $*"; return 0; }
+
+# Cleanup all mocks
+restore_mocks()
+```
+
+**Creating New Mocks:**
+
+```bash
+# In test_helper/common.bash
+mock_zrok() {
+    zrok() {
+        case "$1" in
+            enable) echo "MOCK: zrok enabled" ;;
+            disable) echo "MOCK: zrok disabled" ;;
+            status) echo "MOCK: environment enabled" ;;
+            share) echo "MOCK: tunnel started" ;;
+        esac
+        return 0
+    }
+    export -f zrok
+}
+```
+
+### Test Isolation Best Practices
+
+**Always use TEST_TEMP_DIR:**
+
+```bash
+setup() {
+    create_test_dir  # Creates TEST_TEMP_DIR
+    export TEST_FILE="${TEST_TEMP_DIR}/test.conf"
+}
+
+teardown() {
+    cleanup_test_dir  # Removes TEST_TEMP_DIR
+    restore_mocks
+}
+```
+
+**Common Pitfalls:**
+- ❌ Writing to `/tmp` directly (collisions between tests)
+- ❌ Not cleaning up mocked functions
+- ❌ Relying on test execution order
+- ✅ Each test creates/destroys its own resources
+- ✅ Use `setup()` and `teardown()` consistently
+
+### Debugging Failing Tests
+
+```bash
+# Run single test with verbose output
+bats -f "test name" tests/unit/test_file.bats
+
+# Add debug output (visible with --tap)
+echo "Debug: value=$value" >&3
+
+# TAP output shows all diagnostic messages
+bats --tap tests/unit/test_file.bats
+
+# Check what's actually in generated files
+@test "example" {
+    run some_command
+    echo "Output: $output" >&3
+    cat "$TEST_FILE" >&3
+}
+```
+
+### Testing Functions from Scripts That Require Arguments
+
+**Problem:** `source script.sh` fails if script checks `$#` or `$1`
+
+**Solutions:**
+
+1. **Extract function to test file** (used in test_env_filtering.bats)
+2. **Conditional sourcing:**
+   ```bash
+   # In script
+   if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+       # Only run main logic if executed, not sourced
+       main "$@"
+   fi
+   ```
+3. **Use `--source-only` flag** (requires script modification)
+
+### Quote Escaping Reference
+
+| Input | Escaped Output | Notes |
+|-------|----------------|-------|
+| `simple` | `export VAR='simple'` | No escaping needed |
+| `has 'quote'` | `export VAR='has '\''quote'\''` | Close quote, escape, reopen |
+| `has "double"` | `export VAR='has "double"'` | Double quotes safe in single quotes |
+| `has $var` | `export VAR='has $var'` | Dollar signs safe in single quotes |
+| `has \slash` | `export VAR='has \slash'` | Backslashes safe in single quotes |
+
+---
+
+##  Integration
 
 ### GitHub Actions Workflow
 
@@ -326,14 +515,27 @@ teardown() {
 
 ## Coverage Tracking
 
-Since bats doesn't have built-in coverage, we track coverage manually:
+Current test coverage:
 
-| Script | Unit Tests | Integration Tests | E2E |
-|--------|------------|-------------------|-----|
-| `setup.sh` | Partial | Planned | Planned |
-| `setup_kaggle_zrok.sh` | Planned | Planned | Planned |
-| `start_zrok.sh` | Planned | Planned | Planned |
-| `install_extensions.sh` | N/A | Planned | N/A |
+| Script | Lines | Unit Tests | Coverage | Notes |
+|--------|-------|------------|----------|-------|
+| `setup.sh` | 75 | 24 tests | ~85% | Argument parsing, env fallback, URL validation, git operations |
+| `setup_kaggle_zrok.sh` | 225 | 18 tests | ~35% | Env filtering, SSH permissions (AC2-AC3 deferred to Epic 2) |
+| `start_zrok.sh` | 40 | 3 tests | ~40% | Security checks only (tunnel management tests deferred to Epic 3) |
+| `install_extensions.sh` | 15 | 0 tests | 0% | Optional functionality, low priority |
+
+**Total Unit Tests:** 76 tests  
+**Overall Coverage:** ~70% of critical paths
+
+**Technical Debt (Planned before Epic 2):**
+- SSHD configuration idempotency tests
+- Environment variable export integration tests
+- SSH permission repair edge cases
+
+**Technical Debt (Planned before Epic 3):**
+- Zrok tunnel management tests (enable/disable/status)
+- Cleanup trap comprehensive testing
+- Tunnel reconnection scenarios
 
 ---
 

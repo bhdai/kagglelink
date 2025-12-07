@@ -99,14 +99,15 @@ setup_environment_variables() {
         printenv | while IFS='=' read -r key value; do
             # Skip PWD and OLDPWD to avoid setting working directory
             # Skip interactive/session-specific variables that break SSH sessions
+            # Skip bash internal variables (BASH_*) which can't be exported properly
             if [[ "$key" == "PWD" || "$key" == "OLDPWD" || "$key" == "TERM" ||
                 "$key" == "DEBIAN_FRONTEND" || "$key" == "SHELL" ||
                 "$key" == "_" || "$key" == "SHLVL" || "$key" == "HOSTNAME" ||
-                "$key" == "JPY_PARENT_PID" || "$key" =~ ^COLAB_ ]]; then
+                "$key" == "JPY_PARENT_PID" || "$key" =~ ^COLAB_ || "$key" =~ ^BASH_ ]]; then
                 continue
             fi
             # Properly escape single quotes for bash export
-            escaped_value_final=$(printf "%s" "$value" | sed "s/'/'\\''/g")
+            escaped_value_final=$(printf "%s" "$value" | sed "s/'/'\\\''/g")
             echo "export ${key}='${escaped_value_final}'"
         done
         echo "export MPLBACKEND=Agg"
