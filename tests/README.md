@@ -1,19 +1,20 @@
 # KaggleLink Test Suite
 
 **Framework:** bats-core (Bash Automated Testing System)  
-**Last Updated:** 2025-12-05
+**Test Environment:** Docker-isolated containers  
+**Last Updated:** 2025-12-07
 
 ---
 
 ## Overview
 
-This test suite validates the KaggleLink shell scripts for reliability, idempotency, and security. The testing strategy follows a layered approach:
+This test suite validates the KaggleLink shell scripts for reliability, idempotency, and security. The testing strategy follows a three-layer approach with **Docker-isolated test execution** to prevent developer machine contamination.
 
-| Level | Tool | Focus | Coverage |
-|-------|------|-------|----------|
-| Unit | bats-core | Function validation, argument parsing | 30% |
-| Integration | bats-core + Docker | Script components, SSH setup | 40% |
-| E2E | GitHub Actions + Kaggle | Full setup flow | 30% |
+| Level | Tool | Environment | Focus | Coverage |
+|-------|------|-------------|-------|----------|
+| Unit | bats-core | Docker container | Function validation, argument parsing | 30% |
+| Integration | bats-core + sshd | Docker container | Script components, SSH setup | 40% |
+| E2E | GitHub Actions | Kaggle notebook | Full setup flow | 30% |
 
 ---
 
@@ -21,6 +22,15 @@ This test suite validates the KaggleLink shell scripts for reliability, idempote
 
 ### Prerequisites
 
+**Docker-based testing (Recommended):**
+```bash
+# Install Docker and Docker Compose
+# macOS: Install Docker Desktop
+# Linux: Install docker.io and docker-compose
+# Windows: Install Docker Desktop with WSL2
+```
+
+**Legacy bare-metal testing (Not recommended):**
 ```bash
 # Install bats-core
 # Arch Linux
@@ -31,14 +41,42 @@ brew install bats-core shellcheck
 
 # Ubuntu/Debian
 sudo apt-get install bats shellcheck
-
-# From source (any platform)
-git clone https://github.com/bats-core/bats-core.git
-cd bats-core
-./install.sh /usr/local
 ```
 
-### Install Test Helpers (Non-Arch systems)
+### Docker-Based Testing (Recommended)
+
+Run tests in isolated Docker container matching Kaggle's Debian environment:
+
+```bash
+# Run all tests (unit + integration)
+docker-compose -f docker-compose.test.yml run --rm test
+
+# Run only unit tests
+docker-compose -f docker-compose.test.yml run --rm test bats tests/unit/*.bats
+
+# Run only integration tests
+docker-compose -f docker-compose.test.yml run --rm test bats tests/integration/*.bats
+
+# Run shellcheck
+docker-compose -f docker-compose.test.yml run --rm test shellcheck *.sh
+
+# Interactive debugging
+docker-compose -f docker-compose.test.yml run --rm test bash
+```
+
+**Benefits:**
+- ✅ No sudo pollution on your machine
+- ✅ Works with any shell (fish, zsh, bash)
+- ✅ Identical environment to CI/CD
+- ✅ True isolation for idempotency testing
+
+### Legacy Bare-Metal Testing
+
+**⚠️ Warning:** Running tests on bare metal can modify your system (SSH configs, environment variables). Use Docker instead.
+
+### Install Test Helpers (Non-Arch systems, bare-metal only)
+
+On Arch Linux, the helpers are installed system-wide via pacman. On other systems:
 
 On Arch Linux, the helpers are installed system-wide via pacman. On other systems:
 

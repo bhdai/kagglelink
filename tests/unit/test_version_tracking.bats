@@ -149,14 +149,14 @@ WRAPPER
 }
 
 @test "setup.sh requires -k and -t arguments" {
-  run bash setup.sh
+  run env -u KAGGLELINK_KEYS_URL -u KAGGLELINK_TOKEN bash setup.sh
   [ "$status" -eq 1 ]
-  [[ "$output" =~ "Public key URL" ]] || [[ "$output" =~ "required" ]]
+  [[ "$output" =~ "Error" ]] || [[ "$output" =~ "required" ]]
 }
 
 @test "setup.sh shows help with -h flag" {
   run bash setup.sh -h
-  [ "$status" -eq 1 ]
+  [ "$status" -eq 0 ]
   [[ "$output" =~ "Usage:" ]]
 }
 

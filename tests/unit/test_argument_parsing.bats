@@ -17,6 +17,8 @@ setup() {
 teardown() {
     cleanup_test_dir
     restore_mocks
+    unset KAGGLELINK_KEYS_URL
+    unset KAGGLELINK_TOKEN
 }
 
 # =============================================================================
@@ -24,7 +26,7 @@ teardown() {
 # =============================================================================
 
 @test "P0: should show usage when no arguments provided" {
-    run bash setup.sh
+    run env -u KAGGLELINK_KEYS_URL -u KAGGLELINK_TOKEN bash setup.sh
     [ "$status" -ne 0 ]
     [[ "$output" == *"Usage"* ]] || [[ "$output" == *"-k"* ]] || [[ "$output" == *"--keys-url"* ]]
 }
