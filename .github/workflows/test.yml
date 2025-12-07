@@ -15,10 +15,10 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Build test container
-        run: docker-compose -f docker-compose.test.yml build
+        run: docker compose -f docker-compose.test.yml build
       
       - name: Run unit tests
-        run: docker-compose -f docker-compose.test.yml run --rm test bats tests/unit/*.bats
+        run: docker compose -f docker-compose.test.yml run --rm test bats tests/unit/*.bats
 
   docker-shellcheck:
     name: Shellcheck (Docker-Isolated)
@@ -28,10 +28,10 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Build test container
-        run: docker-compose -f docker-compose.test.yml build
+        run: docker compose -f docker-compose.test.yml build
       
       - name: Run shellcheck
-        run: docker-compose -f docker-compose.test.yml run --rm test shellcheck *.sh
+        run: docker compose -f docker-compose.test.yml run --rm test shellcheck *.sh
 
   # Legacy bare-metal tests (keeping until Story 0.6: Docker-based integration tests)
   unit-tests-legacy:
