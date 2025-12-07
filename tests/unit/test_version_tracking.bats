@@ -53,19 +53,19 @@ teardown() {
   run bash -c 'unset BRANCH && bash setup.sh -h 2>&1 | head -5'
   
   # Verify version and branch appear in output (usage exits with 1, which is expected)
-  [[ "$output" =~ "Version: 1.0.0 (branch: main)" ]]
+  [[ "$output" =~ "Version: 1.1.0 (branch: main)" ]]
 }
 
 @test "setup.sh displays custom branch when BRANCH env var is set" {
   run bash -c 'export BRANCH=develop && bash setup.sh -h 2>&1 | head -5'
   
-  [[ "$output" =~ "Version: 1.0.0 (branch: develop)" ]]
+  [[ "$output" =~ "Version: 1.1.0 (branch: develop)" ]]
 }
 
 @test "setup.sh displays feature branch when BRANCH env var is custom" {
   run bash -c 'export BRANCH=feature/test && bash setup.sh -h 2>&1 | head -5'
   
-  [[ "$output" =~ "Version: 1.0.0 (branch: feature/test)" ]]
+  [[ "$output" =~ "Version: 1.1.0 (branch: feature/test)" ]]
 }
 
 @test "setup.sh uses default main branch for git clone" {
@@ -74,7 +74,7 @@ teardown() {
 #!/bin/bash
 set -e
 # Extract just the version and clone logic from setup.sh
-KAGGLELINK_VERSION="1.0.0"
+KAGGLELINK_VERSION="1.1.0"
 KAGGLELINK_BRANCH="${BRANCH:-main}"
 REPO_URL="https://github.com/bhdai/kagglelink.git"
 INSTALL_DIR="/tmp/kagglelink-test-$$"
@@ -102,7 +102,7 @@ WRAPPER
   cat > "$TEST_TEMP_DIR/test_wrapper.sh" << 'WRAPPER'
 #!/bin/bash
 set -e
-KAGGLELINK_VERSION="1.0.0"
+KAGGLELINK_VERSION="1.1.0"
 KAGGLELINK_BRANCH="${BRANCH:-main}"
 REPO_URL="https://github.com/bhdai/kagglelink.git"
 INSTALL_DIR="/tmp/kagglelink-test-$$"
@@ -127,7 +127,7 @@ WRAPPER
   cat > "$TEST_TEMP_DIR/test_wrapper.sh" << 'WRAPPER'
 #!/bin/bash
 set -e
-KAGGLELINK_VERSION="1.0.0"
+KAGGLELINK_VERSION="1.1.0"
 KAGGLELINK_BRANCH="${BRANCH:-main}"
 REPO_URL="https://github.com/bhdai/kagglelink.git"
 INSTALL_DIR="/tmp/kagglelink-test-$$"
@@ -178,7 +178,7 @@ WRAPPER
 @test "setup.sh accepts valid branch names with dashes in middle" {
   # Dashes in the middle are fine, just not at the start
   run bash -c 'export BRANCH="feature-test" && bash setup.sh -h 2>&1 | head -5'
-  [[ "$output" =~ "Version: 1.0.0 (branch: feature-test)" ]]
+  [[ "$output" =~ "Version: 1.1.0 (branch: feature-test)" ]]
 }
 
 @test "setup.sh checks for git installation" {
@@ -187,7 +187,7 @@ WRAPPER
 #!/bin/bash
 set -e
 export PATH="/usr/bin:/bin"  # Minimal PATH without git location
-KAGGLELINK_VERSION="1.0.0"
+KAGGLELINK_VERSION="1.1.0"
 KAGGLELINK_BRANCH="${BRANCH:-main}"
 
 # Check for git installation
