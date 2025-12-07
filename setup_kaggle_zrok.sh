@@ -113,11 +113,13 @@ setup_environment_variables() {
         echo "# End of Kaggle instance environment variables"
 
         echo "# Directory navigation aliases"
-        echo "alias ..='cd ..'" >>/root/.bashrc
-        echo "alias ...='cd ../..'" >>/root/.bashrc
-        echo "alias .3='cd ../../..'" >>/root/.bashrc
-        echo "alias .4='cd ../../../..'" >>/root/.bashrc
-        echo "alias .5='cd ../../../../..'" >>/root/.bashrc
+        {
+            echo "alias ..='cd ..'"
+            echo "alias ...='cd ../..'" 
+            echo "alias .3='cd ../../..'"
+            echo "alias .4='cd ../../../..'"
+            echo "alias .5='cd ../../../../..'"
+        } >>/root/.bashrc
 
         echo "# Dynamic VS Code server path resolution"
         cat <<'EOT'
@@ -134,6 +136,7 @@ EOT
     } >>/root/.bashrc
 
     echo "Sourcing /root/.bashrc for current script session (best effort)..."
+    # shellcheck disable=SC1091
     source /root/.bashrc || echo "Warning: Sourcing /root/.bashrc encountered an issue. SSH sessions should still inherit env vars."
 }
 

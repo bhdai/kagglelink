@@ -1,4 +1,4 @@
-name: Tests
+name: Test Suite
 
 on:
   push:
@@ -7,26 +7,36 @@ on:
     branches: [main, develop]
 
 jobs:
-  lint:
-    name: Shellcheck Lint
+  docker-unit-tests:
+    name: Unit Tests (Docker-Isolated)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Build test container
+        run: docker compose -f docker-compose.test.yml build
+      
+      - name: Run unit tests
+        run: docker compose -f docker-compose.test.yml run --rm test bats tests/unit/*.bats
 
-      - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@master
-        with:
-          scandir: '.'
-          severity: warning
-          check_together: 'yes'
-        env:
-          SHELLCHECK_OPTS: -e SC1091  # Ignore source not found (for testing)
-
-  unit-tests:
-    name: Unit Tests
+  docker-shellcheck:
+    name: Shellcheck (Docker-Isolated)
     runs-on: ubuntu-latest
-    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Build test container
+        run: docker compose -f docker-compose.test.yml build
+      
+      - name: Run shellcheck
+        run: docker compose -f docker-compose.test.yml run --rm test shellcheck *.sh
+
+  # Legacy bare-metal tests (keeping until Story 0.6: Docker-based integration tests)
+  unit-tests-legacy:
+    name: Unit Tests (Legacy)
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -54,9 +64,9 @@ jobs:
           path: test-results-unit.tap
 
   integration-tests:
-    name: Integration Tests
+    name: Integration Tests (Bare-Metal - Legacy)
     runs-on: ubuntu-latest
-    needs: unit-tests
+    needs: unit-tests-legacy
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
