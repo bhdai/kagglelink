@@ -42,7 +42,9 @@ load_bats_helpers() {
 
 # Create a temporary directory for test artifacts
 create_test_dir() {
-    export TEST_TEMP_DIR=$(mktemp -d)
+    local temp_dir
+    temp_dir=$(mktemp -d)
+    export TEST_TEMP_DIR="$temp_dir"
     echo "Created temp dir: $TEST_TEMP_DIR" >&3
 }
 
@@ -80,7 +82,8 @@ assert_file_permissions() {
         return 1
     fi
     
-    local actual_perms=$(stat -c '%a' "$file" 2>/dev/null || stat -f '%Lp' "$file" 2>/dev/null)
+    local actual_perms
+    actual_perms=$(stat -c '%a' "$file" 2>/dev/null || stat -f '%Lp' "$file" 2>/dev/null)
     if [[ "$actual_perms" != "$expected_perms" ]]; then
         echo "Permission mismatch for $file: expected $expected_perms, got $actual_perms" >&2
         return 1
