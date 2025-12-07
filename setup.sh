@@ -3,7 +3,7 @@
 set -e
 
 # Version and branch configuration
-KAGGLELINK_VERSION="1.0.0"
+KAGGLELINK_VERSION="1.1.0"
 KAGGLELINK_BRANCH="${BRANCH:-main}"
 
 # Security: Validate KAGGLELINK_BRANCH to prevent argument injection

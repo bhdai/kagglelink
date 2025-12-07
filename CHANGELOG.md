@@ -7,14 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-12-07
+
 ### Added
+- **Docker-based test environment** for isolated testing (Dockerfile.test, docker-compose.test.yml)
+- **Bats testing framework** with comprehensive unit and integration tests
+- **GitHub Actions CI/CD pipeline** running tests on every PR and push
+- **Unit tests** for argument parsing, environment filtering, SSH permissions, URL validation, version tracking
+- **Integration tests** for idempotency, SSH configuration, and fixture-based validation
 - Development strategy documentation in architecture.md
-- CI/CD pipeline for testing on main and develop branches
 - Branch strategy (main/develop/feature) for safer deployments
 - CHANGELOG.md for tracking releases
 
 ### Changed
-- GitHub Actions now runs on both `main` and `develop` branches
+- GitHub Actions now runs Docker-containerized tests on both `main` and `develop` branches
+- Development workflow now requires passing tests before merge to main
+- Test environment mirrors Kaggle's Debian runtime (python:3.10-slim-bullseye)
+
+### Developer Experience
+- Fish/zsh users can now develop safely (tests run in isolated bash container)
+- Zero risk of developer machine contamination from sudo operations
+- Identical test environment across local development and CI/CD
+
+### Technical Debt Deferred
+- Version pinning for Zrok binary (moved to future epic)
+- Idempotency improvements for sshd_config (moved to future epic)
+- Profile.d integration for environment variables (moved to future epic)
 
 ## [1.0.0] - 2025-12-05
 
