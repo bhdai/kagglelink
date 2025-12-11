@@ -26,7 +26,7 @@ jobs:
           source_file: 'setup'
           destination_repo: 'bhdai/bhdai.github.io'
           destination_folder: ''
-          destination_branch: 'master'
+          destination_branch: 'main'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           user_name: 'github-actions[bot]'
           commit_message: 'Sync setup script from kagglelink repo'
