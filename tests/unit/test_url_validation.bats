@@ -21,7 +21,9 @@ if [[ "$*" == *"clone"* ]]; then
     echo '#!/bin/bash' > "$target/setup_kaggle_zrok.sh"
     echo '#!/bin/bash' > "$target/start_zrok.sh"
     chmod +x "$target/setup_kaggle_zrok.sh" "$target/start_zrok.sh"
+    exit 0
 fi
+# For any other git command, just succeed
 exit 0
 EOF
     chmod +x "$TEST_TEMP_DIR/git"
