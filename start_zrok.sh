@@ -40,36 +40,31 @@ log_info "Starting zrok tunnel (capturing share token)..."
 SHARE_OUTPUT=$(mktemp)
 SHARE_OUTPUT_RAW=$(mktemp)
 
-# Redirect all output to raw file for debugging, and filtered to regular output
+# Redirect all output to raw file for debugging
 zrok share private --headless --backend-mode tcpTunnel localhost:22 > "$SHARE_OUTPUT_RAW" 2>&1 &
 ZROK_PID=$!
 
-# Give zrok a moment to start
-sleep 2
+# Give zrok more time to establish tunnel and output token (increased from 2s to 8s)
+sleep 8
 
-# Poll for share token with timeout (max 60 seconds - increased from 30)
+# Poll for share token with timeout (max 60 seconds)
 SHARE_TOKEN=""
 for i in {1..60}; do
     # Copy current output for parsing
     cp "$SHARE_OUTPUT_RAW" "$SHARE_OUTPUT" 2>/dev/null || true
     
     # Try multiple regex patterns to find the token
-    # Pattern 1: "access your share with ... zrok access private TOKEN"
-    SHARE_TOKEN=$(grep -oP 'access your share with.*zrok access private \K[a-zA-Z0-9]+' "$SHARE_OUTPUT" 2>/dev/null || true)
+    # Pattern 1: JSON format (non-TTY) - look inside "msg" field for "zrok access private TOKEN"
+    SHARE_TOKEN=$(grep -oP '"msg":"[^"]*zrok access private \K[a-zA-Z0-9]+' "$SHARE_OUTPUT" 2>/dev/null || true)
     
-    # Pattern 2: Just look for "zrok access private TOKEN" anywhere (stop at first non-alphanumeric)
+    # Pattern 2: Plain text format (TTY) - look for "zrok access private TOKEN" 
     if [ -z "$SHARE_TOKEN" ]; then
         SHARE_TOKEN=$(grep -oP 'zrok access private \K[a-zA-Z0-9]+' "$SHARE_OUTPUT" 2>/dev/null || true)
     fi
     
-    # Pattern 3: Look for token in JSON format: "token":"VALUE"
+    # Pattern 3: Look for token on line containing "allow other to access"
     if [ -z "$SHARE_TOKEN" ]; then
-        SHARE_TOKEN=$(grep -oP '"token"\s*:\s*"\K[a-zA-Z0-9]+' "$SHARE_OUTPUT" 2>/dev/null || true)
-    fi
-    
-    # Pattern 4: Look for "private" followed by alphanumeric token (stop at quote or comma)
-    if [ -z "$SHARE_TOKEN" ]; then
-        SHARE_TOKEN=$(grep -oP 'private\s+\K[a-zA-Z0-9]+(?=[",\s])' "$SHARE_OUTPUT" 2>/dev/null || true)
+        SHARE_TOKEN=$(grep "allow other to access" "$SHARE_OUTPUT" 2>/dev/null | grep -oP 'zrok access private \K[a-zA-Z0-9]+' || true)
     fi
     
     if [ -n "$SHARE_TOKEN" ]; then
