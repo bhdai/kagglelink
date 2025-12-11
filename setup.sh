@@ -2,6 +2,10 @@
 
 set -e
 
+# Source logging utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/logging_utils.sh"
+
 # Version and branch configuration
 KAGGLELINK_VERSION="1.1.0"
 KAGGLELINK_BRANCH="${BRANCH:-main}"
@@ -9,18 +13,13 @@ KAGGLELINK_BRANCH="${BRANCH:-main}"
 # Security: Validate KAGGLELINK_BRANCH to prevent argument injection
 # Branch names must not start with '-' to prevent git argument injection
 if [[ "$KAGGLELINK_BRANCH" =~ ^- ]]; then
-    echo "❌ Error: Invalid branch name '$KAGGLELINK_BRANCH'"
-    echo "   Branch names cannot start with '-' (security: prevents argument injection)"
+    categorize_error "prerequisite" "Invalid branch name '$KAGGLELINK_BRANCH'" "Branch names cannot start with '-' (security: prevents argument injection)"
     exit 1
 fi
 
 # Reliability: Check for git installation
 if ! command -v git &> /dev/null; then
-    echo "❌ Error: git is not installed"
-    echo "   Please install git and try again"
-    echo "   - Debian/Ubuntu: sudo apt-get install git"
-    echo "   - RHEL/CentOS: sudo yum install git"
-    echo "   - macOS: brew install git"
+    categorize_error "prerequisite" "git is not installed" "Install git: apt-get install git (Debian/Ubuntu), yum install git (RHEL/CentOS), or brew install git (macOS)"
     exit 1
 fi
 
@@ -117,45 +116,35 @@ fi
 
 # Validate that AUTH_KEYS_URL uses HTTPS (security requirement)
 if [[ ! "$AUTH_KEYS_URL" =~ ^https:// ]]; then
-    echo "❌ Error: Keys URL must use HTTPS (not HTTP)"
-    echo "   Insecure URL: $AUTH_KEYS_URL"
+    categorize_error "prerequisite" "Keys URL must use HTTPS (not HTTP): $AUTH_KEYS_URL" "Use HTTPS URL instead"
     if [[ "$AUTH_KEYS_URL" =~ ^http:// ]]; then
-        echo "   Use: ${AUTH_KEYS_URL/http:/https:}"
-    else
-        echo "   URL must start with https://"
+        echo "   Suggested: ${AUTH_KEYS_URL/http:/https:}" >&2
     fi
     exit 1
 fi
 
-echo "⏳ Cloning repository..."
+log_step_start "Cloning repository"
 if [ -d "$INSTALL_DIR" ]; then
-    echo "Repository directory already exists. Removing it..."
+    log_info "Repository directory already exists. Removing it..."
     rm -rf "$INSTALL_DIR"
 fi
 
 if ! git clone -b "$KAGGLELINK_BRANCH" "$REPO_URL" "$INSTALL_DIR"; then
-    echo "❌ Error: Failed to clone branch '$KAGGLELINK_BRANCH'"
-    echo "   Possible reasons:"
-    echo "   - Branch does not exist"
-    echo "   - Network connectivity issues"
-    echo "   - GitHub is unreachable"
+    categorize_error "network" "Failed to clone branch '$KAGGLELINK_BRANCH'" "Check branch exists and network connectivity"
     exit 1
 fi
-echo "✅ Cloned repository (branch: ${KAGGLELINK_BRANCH})"
+log_step_complete "Cloning repository"
 
-echo "⏳ Changing to repository directory..."
+log_info "Changing to repository directory..."
 cd "$INSTALL_DIR"
 
-echo "⏳ Making scripts executable..."
+log_info "Making scripts executable..."
 chmod +x setup_kaggle_zrok.sh start_zrok.sh
 
-echo "⏳ Setting up SSH with your public keys..."
+log_step_start "Setting up SSH with your public keys"
 ./setup_kaggle_zrok.sh "$AUTH_KEYS_URL"
+log_step_complete "Setting up SSH with your public keys"
 
-echo "⏳ Starting zrok service with your token..."
+log_info "Starting zrok service with your token..."
+# Note: start_zrok.sh is a blocking process that will display success banner
 ./start_zrok.sh "$ZROK_TOKEN"
-
-echo "✅ Setup complete!"
-echo "✅ You should now be able to connect to your Kaggle instance via SSH."
-echo "✅ If you see a URL above, use that to connect from your local machine."
-echo "✅ For more information, visit: https://github.com/bhdai/kagglelink"
