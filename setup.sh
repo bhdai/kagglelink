@@ -45,50 +45,74 @@ usage() {
     echo "  -t, --token TOKEN     Your zrok token"
     echo "  -h, --help            Display this help message"
     echo ""
-    echo "Environment Variables:"
+    echo "Environment Variables (fallback when CLI flags not provided):"
+    echo "  KAGGLELINK_KEYS_URL   URL to your authorized_keys file"
+    echo "  KAGGLELINK_TOKEN      Your zrok token"
     echo "  BRANCH                Override default branch (current: ${KAGGLELINK_BRANCH})"
     exit "$exit_code"
 }
 
 # Parse command line arguments
+# Initialize source tracking variables
+AUTH_KEYS_SOURCE=""
+ZROK_TOKEN_SOURCE=""
+
 while [[ $# -gt 0 ]]; do
     case $1 in
-    -k | --keys-url)
-        AUTH_KEYS_URL="$2"
-        shift 2
-        ;;
-    -t | --token)
-        ZROK_TOKEN="$2"
-        shift 2
-        ;;
-    -h | --help)
-        usage 0
-        ;;
-    *)
-        echo "Unknown option: $1"
-        usage
-        ;;
+        -k | --keys-url)
+            AUTH_KEYS_URL="$2"
+            AUTH_KEYS_SOURCE="CLI argument"
+            shift 2
+            ;;
+        -t | --token)
+            ZROK_TOKEN="$2"
+            ZROK_TOKEN_SOURCE="CLI argument"
+            shift 2
+            ;;
+        -h | --help)
+            usage 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            ;;
     esac
 done
 
 # Apply environment variable fallback if CLI args not provided
 if [ -z "$AUTH_KEYS_URL" ] && [ -n "$KAGGLELINK_KEYS_URL" ]; then
     AUTH_KEYS_URL="$KAGGLELINK_KEYS_URL"
+    AUTH_KEYS_SOURCE="KAGGLELINK_KEYS_URL env var"
 fi
 
 if [ -z "$ZROK_TOKEN" ] && [ -n "$KAGGLELINK_TOKEN" ]; then
     ZROK_TOKEN="$KAGGLELINK_TOKEN"
+    ZROK_TOKEN_SOURCE="KAGGLELINK_TOKEN env var"
+fi
+
+# Log configuration source for transparency
+if [ -n "$AUTH_KEYS_URL" ]; then
+    echo "ℹ️  Using keys URL from: $AUTH_KEYS_SOURCE"
+fi
+if [ -n "$ZROK_TOKEN" ]; then
+    echo "ℹ️  Using token from: $ZROK_TOKEN_SOURCE"
 fi
 
 # Check for required parameters
 if [ -z "$AUTH_KEYS_URL" ]; then
-    echo "Error: Public key URL (-k or --keys-url) is required"
-    usage
+    echo "Error: Public key URL is required"
+    echo "       Provide via: -k <url> or --keys-url <url>"
+    echo "       Or set: KAGGLELINK_KEYS_URL environment variable"
+    echo "       Run with --help for more information"
+    exit 1
 fi
 
 if [ -z "$ZROK_TOKEN" ]; then
-    echo "Error: zrok token (-t or --token) is required"
-    usage
+    echo "Error: zrok token is required"
+    echo "       Provide via: -t <token> or --token <token>"
+    echo "       Or set: KAGGLELINK_TOKEN environment variable"
+    echo "       Run with --help for more information"
+    exit 1
 fi
 
 # Validate that AUTH_KEYS_URL uses HTTPS (security requirement)
