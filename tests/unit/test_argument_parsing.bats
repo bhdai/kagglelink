@@ -89,6 +89,46 @@ teardown() {
 }
 
 # =============================================================================
+# Exit Code Tests (AC1, AC3)
+# =============================================================================
+
+@test "P0: help flag (-h) should exit with code 0" {
+    run bash setup.sh -h
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Usage"* ]]
+}
+
+@test "P0: help flag (--help) should exit with code 0" {
+    run bash setup.sh --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Usage"* ]]
+}
+
+@test "P0: unknown option should exit with code 1" {
+    run bash setup.sh --invalid-flag
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Unknown option"* ]]
+}
+
+@test "P0: missing required arguments should exit with code 1" {
+    run bash setup.sh -k "https://example.com/keys"
+    [ "$status" -eq 1 ]
+}
+
+@test "P0: unknown option should display specific error message" {
+    run bash setup.sh -x value
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Unknown option: -x"* ]]
+}
+
+@test "P1: usage message should include branch variable" {
+    run bash setup.sh -h
+    [ "$status" -eq 0 ]
+    # Should show branch in usage (via KAGGLELINK_BRANCH variable)
+    [[ "$output" == *"BRANCH"* ]] || [[ "$output" == *"main"* ]]
+}
+
+# =============================================================================
 # URL Validation Tests (Future - when URL validation is implemented)
 # =============================================================================
 
