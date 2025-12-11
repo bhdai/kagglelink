@@ -55,16 +55,21 @@ for i in {1..60}; do
     
     # Try multiple regex patterns to find the token
     # Pattern 1: "access your share with ... zrok access private TOKEN"
-    SHARE_TOKEN=$(grep -oP 'access your share with.*zrok access private \K\S+' "$SHARE_OUTPUT" 2>/dev/null || true)
+    SHARE_TOKEN=$(grep -oP 'access your share with.*zrok access private \K[a-zA-Z0-9]+' "$SHARE_OUTPUT" 2>/dev/null || true)
     
-    # Pattern 2: Just look for "zrok access private TOKEN" anywhere
+    # Pattern 2: Just look for "zrok access private TOKEN" anywhere (stop at first non-alphanumeric)
     if [ -z "$SHARE_TOKEN" ]; then
-        SHARE_TOKEN=$(grep -oP 'zrok access private \K\S+' "$SHARE_OUTPUT" 2>/dev/null || true)
+        SHARE_TOKEN=$(grep -oP 'zrok access private \K[a-zA-Z0-9]+' "$SHARE_OUTPUT" 2>/dev/null || true)
     fi
     
-    # Pattern 3: Look for any token-like string (alphanumeric, starts after "private")
+    # Pattern 3: Look for token in JSON format: "token":"VALUE"
     if [ -z "$SHARE_TOKEN" ]; then
-        SHARE_TOKEN=$(grep -oP 'private\s+\K[a-zA-Z0-9]+' "$SHARE_OUTPUT" 2>/dev/null || true)
+        SHARE_TOKEN=$(grep -oP '"token"\s*:\s*"\K[a-zA-Z0-9]+' "$SHARE_OUTPUT" 2>/dev/null || true)
+    fi
+    
+    # Pattern 4: Look for "private" followed by alphanumeric token (stop at quote or comma)
+    if [ -z "$SHARE_TOKEN" ]; then
+        SHARE_TOKEN=$(grep -oP 'private\s+\K[a-zA-Z0-9]+(?=[",\s])' "$SHARE_OUTPUT" 2>/dev/null || true)
     fi
     
     if [ -n "$SHARE_TOKEN" ]; then
