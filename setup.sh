@@ -2,9 +2,69 @@
 
 set -e
 
-# Source logging utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/logging_utils.sh"
+# ============================================================================
+# Inline Logging Functions (embedded for bootstrap phase)
+# ============================================================================
+# These are embedded directly in setup.sh because this script is downloaded
+# standalone before the repository is cloned. Other scripts (setup_kaggle_zrok.sh,
+# start_zrok.sh) source logging_utils.sh from the cloned repository.
+
+# Store step start times for elapsed time calculation
+declare -A _STEP_START_TIMES
+
+log_info() {
+    echo "⏳ [$(date +%H:%M:%S)] $1"
+}
+
+log_success() {
+    echo "✅ [$(date +%H:%M:%S)] $1"
+}
+
+log_error() {
+    echo "❌ [$(date +%H:%M:%S)] ERROR: $1" >&2
+}
+
+log_step_start() {
+    local step_name="$1"
+    _STEP_START_TIMES["$step_name"]=$(date +%s)
+    log_info "$step_name..."
+}
+
+log_step_complete() {
+    local step_name="$1"
+    local start_time="${_STEP_START_TIMES[$step_name]}"
+    if [ -n "$start_time" ]; then
+        local elapsed=$(($(date +%s) - start_time))
+        log_success "$step_name completed (${elapsed}s)"
+    else
+        log_success "$step_name completed"
+    fi
+}
+
+categorize_error() {
+    local error_type="$1"
+    local message="$2"
+    local suggestion="$3"
+    
+    case "$error_type" in
+        "prerequisite")
+            log_error "$message"
+            echo "   💡 Action required: $suggestion" >&2
+            ;;
+        "network")
+            log_error "$message"
+            echo "   🌐 Check connectivity: $suggestion" >&2
+            ;;
+        "upstream")
+            log_error "$message"
+            echo "   🔧 Upstream issue: $suggestion" >&2
+            ;;
+        *)
+            log_error "$message"
+            ;;
+    esac
+}
+# ============================================================================
 
 # Version and branch configuration
 KAGGLELINK_VERSION="1.1.0"
