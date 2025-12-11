@@ -147,8 +147,15 @@ EOT
 
 install_packages() {
     log_step_start "Installing packages"
+    
+    # Install gum
+    log_info "Installing gum..."
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
+    
     sudo apt-get update
-    sudo apt-get install -y openssh-server nvtop screen lshw
+    sudo apt-get install -y openssh-server nvtop screen lshw gum
     log_step_complete "Installing packages"
 
     log_info "Installing uv..."
