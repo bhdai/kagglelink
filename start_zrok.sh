@@ -38,23 +38,55 @@ log_step_complete "Enabling zrok with provided token"
 # CRITICAL: Start zrok share in background to capture token BEFORE blocking
 log_info "Starting zrok tunnel (capturing share token)..."
 SHARE_OUTPUT=$(mktemp)
-# Redirect both stdout and stderr, but filter out verbose INFO logs
-zrok share private --headless --backend-mode tcpTunnel localhost:22 2>&1 | grep -v "^\[.*INFO.*\]" > "$SHARE_OUTPUT" &
+SHARE_OUTPUT_RAW=$(mktemp)
+
+# Redirect all output to raw file for debugging, and filtered to regular output
+zrok share private --headless --backend-mode tcpTunnel localhost:22 > "$SHARE_OUTPUT_RAW" 2>&1 &
 ZROK_PID=$!
 
-# Poll for share token with timeout (max 30 seconds)
+# Give zrok a moment to start
+sleep 2
+
+# Poll for share token with timeout (max 60 seconds - increased from 30)
 SHARE_TOKEN=""
-for i in {1..30}; do
-    # Look for the access command pattern in output
+for i in {1..60}; do
+    # Copy current output for parsing
+    cp "$SHARE_OUTPUT_RAW" "$SHARE_OUTPUT" 2>/dev/null || true
+    
+    # Try multiple regex patterns to find the token
+    # Pattern 1: "access your share with ... zrok access private TOKEN"
     SHARE_TOKEN=$(grep -oP 'access your share with.*zrok access private \K\S+' "$SHARE_OUTPUT" 2>/dev/null || true)
+    
+    # Pattern 2: Just look for "zrok access private TOKEN" anywhere
+    if [ -z "$SHARE_TOKEN" ]; then
+        SHARE_TOKEN=$(grep -oP 'zrok access private \K\S+' "$SHARE_OUTPUT" 2>/dev/null || true)
+    fi
+    
+    # Pattern 3: Look for any token-like string (alphanumeric, starts after "private")
+    if [ -z "$SHARE_TOKEN" ]; then
+        SHARE_TOKEN=$(grep -oP 'private\s+\K[a-zA-Z0-9]+' "$SHARE_OUTPUT" 2>/dev/null || true)
+    fi
+    
     if [ -n "$SHARE_TOKEN" ]; then
+        log_success "Token captured: $SHARE_TOKEN (attempt $i)"
         break
     fi
+    
+    # Debug output every 10 seconds
+    if [ $((i % 10)) -eq 0 ]; then
+        log_info "Still waiting for token... (${i}s elapsed)"
+        log_info "DEBUG: Output file size: $(wc -l < "$SHARE_OUTPUT" 2>/dev/null || echo 0) lines"
+        log_info "DEBUG: Full raw output so far:"
+        cat "$SHARE_OUTPUT" 2>/dev/null | while read line; do
+            log_info "  > $line"
+        done
+    fi
+    
     sleep 1
 done
 
-# Clean up temp file
-rm -f "$SHARE_OUTPUT"
+# Clean up temp files
+rm -f "$SHARE_OUTPUT" "$SHARE_OUTPUT_RAW"
 
 if [ -z "$SHARE_TOKEN" ]; then
     categorize_error "upstream" "Failed to capture share token within timeout" "Check Zrok service status and logs"
@@ -66,6 +98,7 @@ fi
 show_success_banner "$SHARE_TOKEN"
 
 # Keep tunnel alive - wait on background process (blocks here)
-log_info "Tunnel is active..."
+log_info "Tunnel is active. Keeping connection alive..."
+log_info "Press Ctrl+C to stop the tunnel and clean up."
 wait $ZROK_PID
 
