@@ -1,0 +1,32 @@
+name: Sync Setup Script to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'setup.sh'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kagglelink repo
+        uses: actions/checkout@v4
+
+      - name: Create setup file (without .sh extension)
+        run: cp setup.sh setup
+
+      - name: Push setup to GitHub Pages repo
+        uses: dmnemec/copy_file_to_another_repo_action@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.PAGES_DEPLOY_TOKEN }}
+        with:
+          source_file: 'setup'
+          destination_repo: 'bhdai/bhdai.github.io'
+          destination_folder: ''
+          destination_branch: 'master'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          user_name: 'github-actions[bot]'
+          commit_message: 'Sync setup script from kagglelink repo'
