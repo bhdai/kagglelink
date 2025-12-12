@@ -4,6 +4,7 @@ set -e
 
 # Source logging utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=logging_utils.sh
 source "$SCRIPT_DIR/logging_utils.sh"
 
 if [ "$#" -ne 1 ]; then
@@ -75,11 +76,6 @@ for i in {1..60}; do
     # Debug output every 10 seconds
     if [ $((i % 10)) -eq 0 ]; then
         log_info "Still waiting for token... (${i}s elapsed)"
-        log_info "DEBUG: Output file size: $(wc -l < "$SHARE_OUTPUT" 2>/dev/null || echo 0) lines"
-        log_info "DEBUG: Full raw output so far:"
-        cat "$SHARE_OUTPUT" 2>/dev/null | while read line; do
-            log_info "  > $line"
-        done
     fi
     
     sleep 1

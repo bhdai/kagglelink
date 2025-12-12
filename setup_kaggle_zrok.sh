@@ -4,6 +4,7 @@ set -e
 
 # Source logging utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=logging_utils.sh
 source "$SCRIPT_DIR/logging_utils.sh"
 
 if [ "$#" -ne 1 ]; then
