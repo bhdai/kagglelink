@@ -2,6 +2,11 @@
 
 set -e
 
+# Source logging utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=logging_utils.sh
+source "$SCRIPT_DIR/logging_utils.sh"
+
 if [ "$#" -ne 1 ]; then
     echo "Usage: ./setup_kaggle_zrok.sh <authorized_keys_url>"
     exit 1
@@ -10,16 +15,16 @@ fi
 AUTH_KEYS_URL=$1
 
 setup_ssh_directory() {
-    echo "Setting up SSH directory in user's home..."
+    log_info "Setting up SSH directory in user's home..."
     # If running as root, $HOME/.ssh becomes /root/.ssh
     local ssh_dir_path="$HOME/.ssh"
     mkdir -p "$ssh_dir_path"
     if wget -qO "$ssh_dir_path/authorized_keys" "$AUTH_KEYS_URL"; then
         chmod 700 "$ssh_dir_path"
         chmod 600 "$ssh_dir_path/authorized_keys"
-        echo "SSH directory and authorized_keys set up in $ssh_dir_path"
+        log_success "SSH directory and authorized_keys set up in $ssh_dir_path"
     else
-        echo "Failed to download authorized keys from $AUTH_KEYS_URL to $ssh_dir_path/authorized_keys."
+        categorize_error "network" "Failed to download authorized keys from $AUTH_KEYS_URL" "Check URL is accessible and internet connectivity"
         exit 1
     fi
 }
@@ -30,26 +35,26 @@ copy_vscode_dir() {
         [ -d "/kaggle/.vscode" ] && rm -rf "/kaggle/.vscode"
         mkdir -p "/kaggle/.vscode"
         cp -r "$vscode_dir_in_repo/"* "/kaggle/.vscode/"
-        echo ".vscode folder copied to /kaggle directory."
+        log_info ".vscode folder copied to /kaggle directory."
 
         mkdir -p "/kaggle/tmp"
         [ -d "/kaggle/working/.vscode" ] && rm -rf "/kaggle/working/.vscode"
         mkdir -p "/kaggle/working/.vscode"
         cp -r "$vscode_dir_in_repo/"* "/kaggle/working/.vscode/"
-        echo ".vscode folder copied to /kaggle/working directory."
+        log_info ".vscode folder copied to /kaggle/working directory."
 
-        echo "Contents of /kaggle/.vscode:"
+        log_info "Contents of /kaggle/.vscode:"
         ls -l "/kaggle/.vscode"
-        echo "Contents of /kaggle/working/.vscode:"
+        log_info "Contents of /kaggle/working/.vscode:"
         ls -l "/kaggle/working/.vscode"
     else
-        echo ".vscode directory not found in repository at $vscode_dir_in_repo."
+        log_error ".vscode directory not found in repository at $vscode_dir_in_repo."
     fi
 }
 
 configure_sshd() {
     mkdir -p /var/run/sshd
-    echo "Configuring sshd..."
+    log_info "Configuring sshd..."
     cat <<EOF >>/etc/ssh/sshd_config
 Port 22
 Protocol 2
@@ -73,22 +78,22 @@ ClientAliveInterval 60
 ClientAliveCountMax 2
 EOF
     echo "" >>/etc/ssh/sshd_config
-    echo "sshd_config updated. Note: Appended settings. Ensure no conflicting duplicates exist if run multiple times."
+    log_success "sshd_config updated. Note: Appended settings. Ensure no conflicting duplicates exist if run multiple times."
 
-    echo "Configuring debconf for non-interactive mode..."
+    log_info "Configuring debconf for non-interactive mode..."
     echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
-    echo "debconf configured to use Noninteractive frontend."
+    log_success "debconf configured to use Noninteractive frontend."
 
     # Disable pam_systemd for container compatibility
-    echo "Disabling pam_systemd..."
+    log_info "Disabling pam_systemd..."
     sed -i 's/^session.*pam_systemd.so/#&/' /etc/pam.d/common-session
 
     # Disable man-db postinst to prevent crashes
-    echo "Disabling man-db postinst script..."
+    log_info "Disabling man-db postinst script..."
     dpkg-divert --quiet --local --rename --add /var/lib/dpkg/info/man-db.postinst
     ln -sf /bin/true /var/lib/dpkg/info/man-db.postinst
 
-    echo "Container compatibility fixes applied."
+    log_success "Container compatibility fixes applied."
 }
 
 setup_environment_variables() {
@@ -142,40 +147,49 @@ EOT
 }
 
 install_packages() {
-    echo "Installing openssh-server..."
+    log_step_start "Installing packages"
+    
+    # Install gum
+    log_info "Installing gum..."
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
+    
     sudo apt-get update
-    sudo apt-get install -y openssh-server nvtop screen lshw
+    sudo apt-get install -y openssh-server nvtop screen lshw gum
+    log_step_complete "Installing packages"
 
+    log_info "Installing uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
 }
 
 install_zrok() {
-    echo "Downloading latest zrok release"
+    log_step_start "Downloading and installing Zrok"
     curl -s https://api.github.com/repos/openziti/zrok/releases/latest |
         grep "browser_download_url.*linux_amd64.tar.gz" |
         cut -d : -f 2,3 |
         tr -d \" |
         wget -qi -
 
-    echo "Extracting Zrok"
+    log_info "Extracting Zrok"
     if ! tar -xzf zrok_*_linux_amd64.tar.gz -C /usr/local/bin/; then
-        echo "ERROR: Failed to extract Zrok"
+        categorize_error "network" "Failed to extract Zrok" "Check downloaded tar file integrity"
         exit 1
     fi
     rm zrok_*_linux_amd64.tar.gz
 
     # check if zrok is installed correctly
     if ! zrok version &>/dev/null; then
-        echo "Error: Zrok install failed"
+        categorize_error "upstream" "Zrok install failed" "Try manual installation or check Zrok service"
         exit 1
     fi
 
-    echo "Zrok installed successfully:"
-    zrok version
+    log_step_complete "Downloading and installing Zrok"
+    log_success "Zrok version: $(zrok version)"
 }
 
 setup_install_extensions_command() {
-    echo "Setting up 'install_extensions' command..."
+    log_info "Setting up 'install_extensions' command..."
     # SCRIPT_DIR will point to the directory where setup_kaggle_zrok.sh is located
     local SCRIPT_DIR
     SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
@@ -186,16 +200,15 @@ setup_install_extensions_command() {
         mkdir -p /usr/local/bin # Ensure target directory exists
         cp "$install_script_source" "$install_script_target"
         chmod +x "$install_script_target"
-        echo "'install_extensions' command is now available from $install_script_target."
-        echo "You can run 'install_extensions' in your terminal after SSHing."
+        log_success "'install_extensions' command is now available from $install_script_target."
     else
-        echo "Warning: $install_script_source not found. 'install_extensions' command not set up."
+        log_error "$install_script_source not found. 'install_extensions' command not set up."
     fi
 }
 
 start_ssh_service() {
     service ssh start
-    echo "SSH service should be running."
+    log_success "SSH service is running."
 }
 
 copy_screenrc() {
@@ -203,9 +216,9 @@ copy_screenrc() {
     local dest="$HOME/.screenrc"
     if [ -f "$src" ]; then
         cp "$src" "$dest"
-        echo ".screenrc installed to $dest"
+        log_info ".screenrc installed to $dest"
     else
-        echo "Warning: $src not found; skipping .screenrc install."
+        log_error "$src not found; skipping .screenrc install."
     fi
 }
 
@@ -222,4 +235,4 @@ copy_screenrc() {
     start_ssh_service
 )
 
-echo "Setup script completed. SSH service is running. Use start_zrok.sh to start zrok service."
+log_success "Setup script completed. SSH service is running. Use start_zrok.sh to start zrok service."

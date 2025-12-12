@@ -18,8 +18,14 @@ setup() {
 if [[ "$*" == *"clone"* ]]; then
     target="${@: -1}"
     mkdir -p "$target"
+    # Copy logging_utils.sh to mocked repo directory
+    cp /workspace/logging_utils.sh "$target/" 2>/dev/null || true
     echo '#!/bin/bash' > "$target/setup_kaggle_zrok.sh"
+    echo 'source "$(dirname "$0")/logging_utils.sh" 2>/dev/null || true' >> "$target/setup_kaggle_zrok.sh"
+    echo 'exit 0' >> "$target/setup_kaggle_zrok.sh"
     echo '#!/bin/bash' > "$target/start_zrok.sh"
+    echo 'source "$(dirname "$0")/logging_utils.sh" 2>/dev/null || true' >> "$target/start_zrok.sh"
+    echo 'exit 0' >> "$target/start_zrok.sh"
     chmod +x "$target/setup_kaggle_zrok.sh" "$target/start_zrok.sh"
     exit 0
 fi
@@ -77,8 +83,8 @@ teardown() {
 @test "P1: error message should explain why HTTP is rejected" {
     run bash "${PROJECT_ROOT}/setup.sh" -k "http://example.com/keys" -t "test-token"
     [ "$status" -ne 0 ]
-    # Should have actionable error message
-    [[ "$output" == *"Error"* ]]
+    # Should have actionable error message (case-insensitive check for ERROR or Error)
+    [[ "$output" =~ [Ee][Rr][Rr][Oo][Rr] ]]
     [[ "$output" == *"HTTPS"* ]] || [[ "$output" == *"secure"* ]]
 }
 
