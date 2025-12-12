@@ -1,6 +1,6 @@
 #!/bin/bash
 # Shared logging utilities for kagglelink scripts
-# 
+#
 # This library provides consistent logging functions with emojis,
 # timestamps, and error categorization for all kagglelink scripts.
 #
@@ -72,23 +72,23 @@ categorize_error() {
     local error_type="$1"
     local message="$2"
     local suggestion="$3"
-    
+
     case "$error_type" in
-        "prerequisite")
-            log_error "$message"
-            echo "   💡 Action required: $suggestion" >&2
-            ;;
-        "network")
-            log_error "$message"
-            echo "   🌐 Check connectivity: $suggestion" >&2
-            ;;
-        "upstream")
-            log_error "$message"
-            echo "   🔧 Upstream issue: $suggestion" >&2
-            ;;
-        *)
-            log_error "$message"
-            ;;
+    "prerequisite")
+        log_error "$message"
+        echo "   💡 Action required: $suggestion" >&2
+        ;;
+    "network")
+        log_error "$message"
+        echo "   🌐 Check connectivity: $suggestion" >&2
+        ;;
+    "upstream")
+        log_error "$message"
+        echo "   🔧 Upstream issue: $suggestion" >&2
+        ;;
+    *)
+        log_error "$message"
+        ;;
     esac
 }
 
@@ -98,11 +98,11 @@ categorize_error() {
 # Output: Formatted success banner to stdout
 show_success_banner() {
     local share_token="$1"
-    
-    if command -v gum &> /dev/null; then
+
+    if command -v gum &>/dev/null; then
         local header=$(gum style --foreground 212 --border double --border-foreground 212 --padding "1 2" --align center --width 60 "✅ Setup Complete!")
         local message=$(gum style --foreground 255 --align center --width 60 "Your Kaggle instance is ready for remote access!")
-        
+
         local token_label=$(gum style --foreground 99 "📡 Zrok Share Token:")
         local token_value=$(gum style --foreground 212 --bold "$share_token")
         local token_section=$(gum join --vertical --align center "$token_label" "$token_value")
@@ -112,10 +112,11 @@ show_success_banner() {
         local cmd1=$(gum style --foreground 212 "zrok access private $share_token")
         local cmd2_label=$(gum style --foreground 255 "Then connect via SSH:")
         local cmd2=$(gum style --foreground 212 "ssh -p 9191 root@127.0.0.1")
-        
+
         local cmds_content=$(gum join --vertical --align center "$instr_label" " " "$cmd1" " " "$cmd2_label" " " "$cmd2")
         local cmds_box=$(gum style --border rounded --padding "1 2" --border-foreground 255 --width 60 --align center "$cmds_content")
 
+        printf "\n"
         gum join --vertical --align center "$header" " " "$message" " " "$token_box" " " "$cmds_box"
     else
         echo ""
