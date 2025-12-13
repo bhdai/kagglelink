@@ -189,14 +189,39 @@ if [ -d "$INSTALL_DIR" ]; then
     rm -rf "$INSTALL_DIR"
 fi
 
-if ! git clone -b "$KAGGLELINK_BRANCH" "$REPO_URL" "$INSTALL_DIR"; then
-    categorize_error "network" "Failed to clone branch '$KAGGLELINK_BRANCH'" "Check branch exists and network connectivity"
+# Capture clone output for better error categorization
+if clone_output=$(git clone --depth 1 -b "$KAGGLELINK_BRANCH" "$REPO_URL" "$INSTALL_DIR" 2>&1); then
+    clone_status=0
+else
+    clone_status=$?
+fi
+
+if [ $clone_status -ne 0 ]; then
+    # Check if branch doesn't exist
+    if [[ "$clone_output" == *"Remote branch"*"not found"* ]] || [[ "$clone_output" == *"couldn't find remote ref"* ]]; then
+        categorize_error "prerequisite" \
+            "Branch '$KAGGLELINK_BRANCH' does not exist in repository" \
+            "Use BRANCH=main or check available branches at https://github.com/bhdai/kagglelink"
+    # Check for network issues
+    elif [[ "$clone_output" == *"Could not resolve host"* ]] || \
+         [[ "$clone_output" == *"Connection refused"* ]] || \
+         [[ "$clone_output" == *"Failed to connect"* ]]; then
+        categorize_error "network" \
+            "Network connectivity issue during clone" \
+            "Check internet connection and try again"
+    else
+        categorize_error "upstream" \
+            "Failed to clone repository" \
+            "GitHub may be temporarily unavailable or repository access restricted"
+    fi
     exit 1
 fi
-log_step_complete "Cloning repository"
 
-log_info "Changing to repository directory..."
+# Log commit hash for debugging purposes
 cd "$INSTALL_DIR"
+COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+log_success "Cloned repository (branch: ${KAGGLELINK_BRANCH}, commit: ${COMMIT_HASH})"
+log_step_complete "Cloning repository"
 
 log_info "Making scripts executable..."
 chmod +x setup_kaggle_zrok.sh start_zrok.sh
