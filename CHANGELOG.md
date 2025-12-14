@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed interactive prompt during `gum` package installation (added `--yes` to gpg command) to support re-running setup in non-interactive environments.
+
 ## [1.1.0] - 2025-12-07
 
 ### Added
