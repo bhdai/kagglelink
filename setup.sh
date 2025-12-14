@@ -185,6 +185,10 @@ fi
 
 log_step_start "Cloning repository"
 if [ -d "$INSTALL_DIR" ]; then
+    echo "⚠️  WARNING: specific directory already exists at $INSTALL_DIR"
+    echo "    This script is designed to run on a FRESH Kaggle instance."
+    echo "    Re-running on a used instance may cause issues."
+    echo "    Continuing with cleanup..."
     log_info "Repository directory already exists. Removing it..."
     rm -rf "$INSTALL_DIR"
 fi
