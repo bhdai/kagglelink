@@ -118,13 +118,9 @@ show_success_banner() {
         instr_label=$(gum style "🖥️  On your LOCAL machine, run:")
         local cmd1
         cmd1=$(gum style "zrok access private $share_token")
-        local cmd2_label
-        cmd2_label=$(gum style "Then connect via SSH:")
-        local cmd2
-        cmd2=$(gum style "ssh -p 9191 root@127.0.0.1")
 
         local cmds_content
-        cmds_content=$(gum join --vertical --align center "$instr_label" " " "$cmd1" " " "$cmd2_label" " " "$cmd2")
+        cmds_content=$(gum join --vertical --align center "$instr_label" " " "$cmd1")
         local cmds_box
         cmds_box=$(gum style --border rounded --padding "1 2" --width 60 --align center "$cmds_content")
 
@@ -143,10 +139,6 @@ show_success_banner() {
         echo "║  🖥️  On your LOCAL machine, run:                              ║"
         echo "║                                                                ║"
         echo "║      zrok access private $share_token"
-        echo "║                                                                ║"
-        echo "║  Then connect via SSH:                                        ║"
-        echo "║                                                                ║"
-        echo "║      ssh -p 9191 root@127.0.0.1                               ║"
         echo "║                                                                ║"
         echo "╚════════════════════════════════════════════════════════════════╝"
         echo ""
