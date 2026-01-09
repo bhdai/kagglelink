@@ -9,6 +9,7 @@ load '../test_helper/common'
 setup() {
     create_test_dir
     # Copy setup.sh to temp dir for isolated testing
+    # Note: setup.sh has inline logging functions, no need to copy logging_utils.sh
     cp "${PROJECT_ROOT}/setup.sh" "${TEST_TEMP_DIR}/"
     cd "${TEST_TEMP_DIR}"
 }
