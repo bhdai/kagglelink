@@ -108,7 +108,7 @@ show_success_banner() {
         local token_label
         token_label=$(gum style "📡 Zrok Share Token:")
         local token_value
-        token_value=$(gum style --bold "$share_token")
+        token_value=$(gum style "$share_token")
         local token_section
         token_section=$(gum join --vertical --align center "$token_label" "$token_value")
         local token_box
