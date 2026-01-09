@@ -32,6 +32,9 @@ Wait for the setup to complete. You should see output similar to this upon succe
 
 ![](https://github.com/user-attachments/assets/22f564f3-8622-4c6c-bb82-9c9c63dd322a)
 
+> [!TIP]
+> **Avoiding Session Timeouts**: Kaggle's interactive notebook sessions have idle timeouts. For long-running remote development, use the **"Save & Run All"** feature by clicking the **Save Version** button (top right) and selecting "Save". This runs your notebook as a background job, avoiding timeout interruptions. You can still get the zrok share token from the log screen(click active event at bottom left -> Open Logs in Viewer)
+
 #### How to set up your public SSH key?
 
 1.  **Generate an SSH key pair** on your local machine (if you haven't already). Use a descriptive filename, for example:

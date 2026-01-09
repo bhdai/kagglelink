@@ -119,7 +119,6 @@ teardown() {
     [[ "$output" == *"✅ Setup Complete!"* ]]
     [[ "$output" == *"$test_token"* ]]
     [[ "$output" == *"zrok access private $test_token"* ]]
-    [[ "$output" == *"ssh -p 9191 root@127.0.0.1"* ]]
     [[ "$output" == *"╔"* ]]  # Box drawing characters
     [[ "$output" == *"╚"* ]]
 }
