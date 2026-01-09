@@ -5,10 +5,24 @@ All notable changes to kagglelink will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0] - 2025-01-09
+
+### Added
+- **Environment variable fallback support** - Configure via `KAGGLELINK_KEYS_URL` and `KAGGLELINK_TOKEN` env vars as alternative to CLI flags (#14)
+- **Unified logging system** - Consistent logging with emoji indicators (⏳ ✅ ❌), timestamps, elapsed time tracking, and error categorization (#15)
+- **Success banner with zrok token** - Clear connection instructions displayed after setup with the zrok share token
+- **Configuration source logging** - Shows whether config came from CLI args or environment variables
+- **Save & Run All tip in README** - Guidance for avoiding Kaggle session timeouts
+
+### Changed
+- **Shallow clone** (`--depth 1`) for faster repository setup (#16)
+- **Improved error messages** - Error categorization (prerequisite, network, upstream) with actionable suggestions (#16)
+- **Commit hash logging** - Shows git commit after successful clone for debugging (#16)
 
 ### Fixed
-- Fixed interactive prompt during `gum` package installation (added `--yes` to gpg command) to support re-running setup in non-interactive environments.
+- **gum color codes in Kaggle logs** - Removed ANSI escape codes from success banner for cleaner output in Kaggle's minimal log viewer (#17)
+- **SSH command removed from banner** - Prevents confusion with host key warnings on ephemeral instances; SSH instructions now in README only (#17)
+- **gum --yes flag** - Fixed interactive prompt during package installation for non-interactive environments
 
 ## [1.1.0] - 2025-12-07
 
