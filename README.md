@@ -1,10 +1,12 @@
 # kagglelink
 
-A streamlined solution for accessing Kaggle computational resources via SSH and VS Code, powered by Zrok for secure tunneling.
+Turn any Kaggle notebook into an SSH-accessible server. One command. Free GPUs.
 
 ## Overview
 
-KaggleLink allows you to connect to Kaggle environments via SSH, enabling you to leverage Kaggle's computational resources
+KaggleLink establishes a secure SSH tunnel to your Kaggle notebook, giving you full terminal access to Kaggle's free GPU resources. Use `screen`, `tmux`, run background jobs, transfer files with `rsync`—treat it like your own remote server.
+
+> **Note:** Kaggle now offers native VS Code Remote support. KaggleLink focuses on **SSH terminal access** for workflows that require a real shell: session persistence, scripting, and direct server management.
 
 ![](https://github.com/user-attachments/assets/db4454ff-5545-4094-adeb-47b74ab0c33a)
 
