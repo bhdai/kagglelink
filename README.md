@@ -27,6 +27,8 @@ Execute the following one-line command in a Kaggle notebook cell. This script wi
 !curl -sS https://bhdai.github.io/setup | bash -s -- -k <public_key_url> -t <zrok_token>
 ```
 
+KaggleLink uses a project-managed pinned Zrok version (`v1.1.11`) during setup for stable Linux amd64 compatibility.
+
 > [!NOTE]
 > Replace `<public_key_url>` with the URL of your public SSH key file and `<zrok_token>` with your Zrok token.
 

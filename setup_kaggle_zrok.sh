@@ -164,28 +164,99 @@ install_packages() {
 }
 
 install_zrok() {
-    log_step_start "Downloading and installing Zrok"
-    curl -s https://api.github.com/repos/openziti/zrok/releases/latest |
-        grep "browser_download_url.*linux_amd64.tar.gz" |
-        cut -d : -f 2,3 |
-        tr -d \" |
-        wget -qi -
+    local zrok_version_pin="v1.1.11"
+    local zrok_release_url="https://api.github.com/repos/openziti/zrok/releases/tags/${zrok_version_pin}"
+    local zrok_target_path="/usr/local/bin/zrok"
+    local tmp_dir archive_path extract_dir release_metadata asset_url zrok_binary_path system_arch
+    local zrok_candidates=()
 
-    log_info "Extracting Zrok"
-    if ! tar -xzf zrok_*_linux_amd64.tar.gz -C /usr/local/bin/; then
-        categorize_error "network" "Failed to extract Zrok" "Check downloaded tar file integrity"
-        exit 1
-    fi
-    rm zrok_*_linux_amd64.tar.gz
+    log_step_start "Downloading and installing Zrok ${zrok_version_pin}"
 
-    # check if zrok is installed correctly
-    if ! zrok version &>/dev/null; then
-        categorize_error "upstream" "Zrok install failed" "Try manual installation or check Zrok service"
+    system_arch=$(uname -m)
+    if [ "$system_arch" != "x86_64" ] && [ "$system_arch" != "amd64" ]; then
+        categorize_error "upstream" "Unsupported architecture for pinned Zrok asset: ${system_arch}" "Use an amd64 host or update the installer asset selection strategy"
         exit 1
     fi
 
-    log_step_complete "Downloading and installing Zrok"
-    log_success "Zrok version: $(zrok version)"
+    if ! tmp_dir=$(mktemp -d); then
+        categorize_error "upstream" "Failed to create temporary directory for Zrok install" "Check filesystem permissions and available disk space"
+        exit 1
+    fi
+    archive_path="${tmp_dir}/zrok_linux_amd64.tar.gz"
+    extract_dir="${tmp_dir}/extracted"
+
+    if ! release_metadata=$(curl -fsSL "$zrok_release_url"); then
+        categorize_error "network" "Failed to fetch Zrok release metadata for ${zrok_version_pin}" "Verify GitHub API connectivity and retry"
+        rm -rf "$tmp_dir"
+        exit 1
+    fi
+
+    asset_url=$(printf '%s\n' "$release_metadata" |
+        grep -Eo '"browser_download_url":[[:space:]]*"[^"]+"' |
+        cut -d '"' -f 4 |
+        grep -E '/zrok_[^/"]*_linux_amd64\.tar\.gz$' |
+        head -n 1)
+
+    if [ -z "$asset_url" ]; then
+        categorize_error "upstream" "Failed to resolve linux amd64 asset for ${zrok_version_pin}" "Check release assets for the pinned tag and update the project pin if needed"
+        rm -rf "$tmp_dir"
+        exit 1
+    fi
+
+    if [[ "$asset_url" != https://* ]]; then
+        categorize_error "upstream" "Resolved Zrok asset URL is not HTTPS for ${zrok_version_pin}" "Only HTTPS release assets are allowed"
+        rm -rf "$tmp_dir"
+        exit 1
+    fi
+
+    if ! wget -qO "$archive_path" "$asset_url"; then
+        categorize_error "network" "Failed to download Zrok archive for ${zrok_version_pin}" "Check network connectivity and release asset availability"
+        rm -rf "$tmp_dir"
+        exit 1
+    fi
+
+    if ! mkdir -p "$extract_dir"; then
+        categorize_error "upstream" "Failed to create extraction directory ${extract_dir}" "Check filesystem permissions and available disk space"
+        rm -rf "$tmp_dir"
+        exit 1
+    fi
+
+    if ! tar -xzf "$archive_path" -C "$extract_dir"; then
+        categorize_error "upstream" "Failed to extract Zrok archive ${archive_path}" "Check archive integrity and release packaging for ${zrok_version_pin}"
+        rm -rf "$tmp_dir"
+        exit 1
+    fi
+
+    mapfile -t zrok_candidates < <(find "$extract_dir" -type f -name zrok)
+    if [ "${#zrok_candidates[@]}" -eq 0 ]; then
+        categorize_error "upstream" "Failed to locate zrok binary after extracting ${archive_path}" "Verify release layout for ${zrok_version_pin} includes a zrok executable"
+        rm -rf "$tmp_dir"
+        exit 1
+    fi
+
+    if [ "${#zrok_candidates[@]}" -gt 1 ]; then
+        categorize_error "upstream" "Multiple zrok binaries found after extracting ${archive_path}" "Update binary selection strategy to match release layout for ${zrok_version_pin}"
+        rm -rf "$tmp_dir"
+        exit 1
+    fi
+
+    zrok_binary_path="${zrok_candidates[0]}"
+
+    if ! install -m 0755 "$zrok_binary_path" "$zrok_target_path"; then
+        categorize_error "upstream" "Failed to install zrok binary to ${zrok_target_path}" "Check filesystem permissions and retry setup"
+        rm -rf "$tmp_dir"
+        exit 1
+    fi
+
+    rm -rf "$tmp_dir"
+
+    if ! "$zrok_target_path" version &>/dev/null; then
+        categorize_error "upstream" "Post-install validation failed for Zrok ${zrok_version_pin}" "Verify ${zrok_target_path} is executable and rerun setup"
+        exit 1
+    fi
+
+    log_step_complete "Downloading and installing Zrok ${zrok_version_pin}"
+    log_success "Zrok version: $($zrok_target_path version)"
 }
 
 setup_install_extensions_command() {
